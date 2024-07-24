@@ -1,7 +1,12 @@
 <template>
   <main class="home-container">
     <div class="q-pa-m">
-      <q-layout view="hHh Lpr lff" container style="height: 100vh" class="shadow-2 rounded-borders">
+      <q-layout
+        view="hHh Lpr lff"
+        container
+        style="height: 100vh"
+        class="shadow-2 rounded-borders"
+      >
         <q-header elevated class="bg-black">
           <q-toolbar>
             <q-btn flat @click="drawer = !drawer" round dense icon="menu" />
@@ -20,7 +25,11 @@
           <q-scroll-area class="fit">
             <q-list>
               <template v-for="(menuItem, index) in menuList" :key="index">
-                <q-item clickable :active="menuItem.label === 'Outbox'" v-ripple>
+                <q-item
+                  clickable
+                  :active="menuItem.label === 'Outbox'"
+                  v-ripple
+                >
                   <q-item-section avatar>
                     <q-icon :name="menuItem.icon" />
                   </q-item-section>
@@ -50,7 +59,10 @@
 
                   <div>
                     Have you seen Quasar?
-                    <img src="https://cdn.quasar.dev/img/discord-omq.png" class="my-emoticon" />
+                    <img
+                      src="https://cdn.quasar.dev/img/discord-omq.png"
+                      class="my-emoticon"
+                    />
                   </div>
                 </q-chat-message>
 
@@ -90,24 +102,24 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref } from "vue";
 
 const menuList = [
   {
-    icon: 'inbox',
-    label: 'Chat History',
-    separator: true
-  }
-]
+    icon: "inbox",
+    label: "Chat History",
+    separator: true,
+  },
+];
 
 export default {
   setup() {
     return {
       drawer: ref(true),
-      menuList
-    }
-  }
-}
+      menuList,
+    };
+  },
+};
 </script>
 
 <style scoped>
