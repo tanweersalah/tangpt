@@ -227,7 +227,7 @@ export default {
 .chat-window {
   
   max-width: 1200px;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   display: grid;
   grid-template-rows: auto 70px;
   height: 100%;
