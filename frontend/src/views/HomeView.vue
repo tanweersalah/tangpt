@@ -3,8 +3,7 @@
     <div class="q-pa-m">
       <q-layout
         view="hHh Lpr lff"
-        container
-        style="height: 100vh"
+        
         class="shadow-2 rounded-borders"
       >
         <q-header elevated class="bg-black">
@@ -207,7 +206,7 @@ export default {
 }
 
 .home-container {
-  height: 100vh;
+  height: 100%;
   width: 100vw;
 }
 
