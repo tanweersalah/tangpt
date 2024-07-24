@@ -131,7 +131,42 @@ export default {
       menuList,
     };
   },
+  created() {
+    var uniqueId = this.generateUniqueId();
+
+        // Store the new unique ID in session storage
+        sessionStorage.setItem('uniqueId',uniqueId);
+    
+    console.log(uniqueId)
+  },
   methods:{
+
+    getUniqueId() {
+    // Define the key used to store the unique ID in session storage
+    const uniqueIdKey = 'uniqueId';
+
+    // Check if the unique ID is already stored in session storage
+    let uniqueId = sessionStorage.getItem(uniqueIdKey);
+
+    // If the unique ID does not exist, generate a new one
+    if (!uniqueId) {
+        // Generate a new unique ID
+        uniqueId = this.generateUniqueId();
+
+        // Store the new unique ID in session storage
+        sessionStorage.setItem(uniqueIdKey, uniqueId);
+    }
+
+    // Return the unique ID
+    return uniqueId;
+},
+
+// Helper function to generate a new unique ID
+ generateUniqueId() {
+    // You can use any unique ID generation logic here
+    // This example uses a combination of the current timestamp and a random number
+    return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+},
     scrollToBottom() {
       const scrollArea = this.$refs.chatScroll;
       if (scrollArea && scrollArea.$el) {
@@ -145,13 +180,14 @@ export default {
     
   ,
     async get_response(text){
-
+      var u_id = this.getUniqueId()
+      console.log(u_id)
       this.messages.push({"type": "user", "message":text});
       this.message_procession = true
       setTimeout(() => {
     this.scrollToBottom();
 }, 200);
-      var new_message = await this.backend.getGptResponse(text);
+      var new_message = await this.backend.getGptResponse(text, u_id);
       this.message_procession = false
       
       

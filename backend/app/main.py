@@ -15,6 +15,7 @@ load_dotenv()
 
 class RequestModel(BaseModel):
     message: str
+    session_id:str
 
 groq_api_key = os.getenv("GROQ_API_KEY") 
 os.environ['LANGCHAIN_API_KEY'] = os.getenv("LANGCHAIN_API_KEY")
@@ -28,7 +29,7 @@ os.environ['LANGCHAIN_PROJECT'] = os.getenv("LANGCHAIN_PROJECT")
 
 os.environ['LANGCHAIN_TRACING_V2'] = "true"
 
-model = ChatGroq(model="llama3-8b-8192")
+model = ChatGroq(model="gemma-7b-it")
 
 
 parser = StrOutputParser()
@@ -66,10 +67,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-config = {"configurable": {"session_id": "chat1"}}
+
 
 @app.post("/invoke")
 async def get_response(request : RequestModel):
+    config = {"configurable": {"session_id": request.session_id}}
     return chain.invoke([HumanMessage(request.message)], config=config)
     
 
