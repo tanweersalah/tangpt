@@ -193,13 +193,14 @@ export default {
   max-width: 1200px;
   font-size: 1.2rem;
   display: grid;
-  grid-template-rows: 4fr 2fr;
+  grid-template-rows: auto 70px;
   height: 100%;
   width: 100%;
 }
 .chat-text-box {
   align-self: center;
-  padding: 20px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 .chat-input {
   width: 100%;
