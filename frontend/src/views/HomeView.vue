@@ -193,7 +193,7 @@ export default {
   max-width: 1200px;
   font-size: 1.2rem;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 4fr 2fr;
   height: 100%;
   width: 100%;
 }
