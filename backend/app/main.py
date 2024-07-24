@@ -45,7 +45,7 @@ chain = with_message_history|parser
 
 ## App defination
 
-app = FastAPI(title="TanGPT API", version="1", description="TanGPT API Server using langchain")
+app = FastAPI(root_path="/api", title="TanGPT API", version="1", description="TanGPT API Server using langchain")
 
 config = {"configurable": {"session_id": "chat1"}}
 
