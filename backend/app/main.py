@@ -8,6 +8,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -27,7 +28,7 @@ os.environ['LANGCHAIN_PROJECT'] = os.getenv("LANGCHAIN_PROJECT")
 
 os.environ['LANGCHAIN_TRACING_V2'] = "true"
 
-model = ChatGroq(model="llama3-70b-8192")
+model = ChatGroq(model="llama3-8b-8192")
 
 
 parser = StrOutputParser()
@@ -45,7 +46,25 @@ chain = with_message_history|parser
 
 ## App defination
 
+
+origins = [
+    "https://tangpt.tanflix.me/",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:5173",
+]
+
+
+
 app = FastAPI(root_path="/api", title="TanGPT API", version="1", description="TanGPT API Server using langchain")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 config = {"configurable": {"session_id": "chat1"}}
 

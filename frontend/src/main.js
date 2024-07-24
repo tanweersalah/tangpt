@@ -4,6 +4,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import { Quasar } from "quasar";
+import BackendService from "./services/backend-service";
 
 // Import icon libraries
 import "@quasar/extras/material-icons/material-icons.css";
@@ -17,5 +18,8 @@ app.use(router);
 app.use(Quasar, {
   plugins: {}, // import Quasar plugins and add here
 });
+
+var backendService = new BackendService();
+app.provide("backendService", backendService);
 
 app.mount("#app");

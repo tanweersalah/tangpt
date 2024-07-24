@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.12",
+    "axios": "^1.7.2",
+    "marked": "^13.0.2",
     "quasar": "^2.16.6",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0"

@@ -22,6 +22,7 @@
           bordered
           class="bg-grey-9"
         >
+        <!-- <q-btn label="Scroll to bottom" color="primary" @click="scrollToBottom" ></q-btn> -->
           <q-scroll-area class="fit">
             <q-list>
               <template v-for="(menuItem, index) in menuList" :key="index">
@@ -45,34 +46,44 @@
 
         <q-page-container class="page-content">
           <div class="chat-window">
+            
             <div class="q-pa-md row justify-center">
-              <q-scroll-area class="fit" style="width: 100%">
-                <q-chat-message
+              
+              <q-scroll-area class="fit" style="width: 100%"  ref="chatScroll">
+                <div v-for="(message,index) in messages" :key="index"> 
+                <q-chat-message v-if="message['type']==='user'"
                   name="me"
-                  avatar="https://cdn.quasar.dev/img/avatar3.jpg"
-                  stamp="7 minutes ago"
+                  
+                  
                   sent
                   text-color="white"
                   bg-color="primary"
                 >
-                  <div>Hey there!</div>
+                  <div>{{message['message']}}</div>
 
-                  <div>
-                    Have you seen Quasar?
-                    <img
-                      src="https://cdn.quasar.dev/img/discord-omq.png"
-                      class="my-emoticon"
-                    />
-                  </div>
-                </q-chat-message>
+                  </q-chat-message>
 
-                <q-chat-message
-                  name="Jane"
-                  avatar="https://cdn.quasar.dev/img/avatar5.jpg"
-                  bg-color="amber"
+                <q-chat-message v-if="message['type']==='gpt'" 
+                  name="TanGPT"
+                  avatar="https://geeksgod.com/wp-content/uploads/2021/05/Logopit_1603470318463-300x300.png"
+                  
+                  text-color="black"
                 >
+                <div v-html='message["message"]' />
+                  <!-- <q-spinner-dots size="2rem" /> -->
+                </q-chat-message>
+                
+
+                </div>
+                <q-chat-message v-if='message_procession'  
+                  name="TanGPT"
+                  avatar="https://geeksgod.com/wp-content/uploads/2021/05/Logopit_1603470318463-300x300.png"
+                  bg-color="green"
+                >
+                
                   <q-spinner-dots size="2rem" />
                 </q-chat-message>
+                <q-scroll-observer />
               </q-scroll-area>
             </div>
 
@@ -88,7 +99,7 @@
                 placeholder="Type a message"
               >
                 <template v-slot:append>
-                  <q-avatar>
+                  <q-avatar @click="get_response(message)">
                     <img src="https://cdn.quasar.dev/logo-v2/svg/logo.svg" />
                   </q-avatar>
                 </template>
@@ -102,7 +113,8 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { inject, ref } from "vue";
+import {marked} from 'marked';
 
 const menuList = [
   {
@@ -113,23 +125,78 @@ const menuList = [
 ];
 
 export default {
+ 
   setup() {
     return {
-      drawer: ref(true),
+      drawer: ref(false),
       menuList,
     };
   },
+  methods:{
+    scrollToBottom() {
+      const scrollArea = this.$refs.chatScroll;
+      if (scrollArea && scrollArea.$el) {
+        const scrollElement = scrollArea.$el.querySelector('.q-scrollarea__container');
+        if (scrollElement) {
+          scrollElement.scrollTop = scrollElement.scrollHeight;
+        }
+      }
+    }
+
+    
+  ,
+    async get_response(text){
+
+      this.messages.push({"type": "user", "message":text});
+      this.message_procession = true
+      setTimeout(() => {
+    this.scrollToBottom();
+}, 200);
+      var new_message = await this.backend.getGptResponse(text);
+      this.message_procession = false
+      
+      
+
+      console.log(new_message)
+      var html_msg = this.renderedMarkdown(new_message);
+      this.messages.push({"type": "gpt", "message":html_msg});
+      setTimeout(() => {
+    this.scrollToBottom();
+}, 1000);
+      
+    },
+    renderedMarkdown(text) {
+      return marked(text);
+    }},
+  
+  
+  data(){
+    return {
+      backend : inject('backendService'),
+      messages : [],
+      message_procession : false,
+      scrollsize: 0,
+    }
+  }
 };
 </script>
 
 <style scoped>
 .page-content {
   height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
 }
 .chat-window {
+  
+  max-width: 1200px;
+  font-size: 1.2rem;
   display: grid;
   grid-template-rows: 1fr auto;
   height: 100%;
+  width: 100%;
 }
 .chat-text-box {
   align-self: center;
