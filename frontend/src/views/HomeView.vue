@@ -222,7 +222,7 @@ export default {
   font-size: 1.1rem;
   display: flex;
   flex-direction: column;
-  width: 100%;
+  width: 100vw;
 }
 .chat-text-box {
   align-self: center;
