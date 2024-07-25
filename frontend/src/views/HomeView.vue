@@ -213,7 +213,7 @@ export default {
   justify-content: center;
 }
 .chat-area {
-  flex-grow: 1;
+  flex: 1 0 auto;
   padding: 0 20px 0 20px;
 }
 
@@ -226,7 +226,7 @@ export default {
 }
 .chat-text-box {
   align-self: center;
-
+  flex-shrink: 0;
   max-width: 900px;
   width: 100%;
   padding-left: 20px;
