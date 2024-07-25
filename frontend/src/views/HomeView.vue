@@ -42,7 +42,7 @@
         <q-page-container class="page-content">
           <div class="chat-window">
             <div class="chat-area">
-              <q-scroll-area class="fit" style="width: 100%" ref="chatScroll">
+              <q-scroll-area class="fit" ref="chatScroll">
                 <div v-for="(message, index) in messages" :key="index">
                   <q-chat-message
                     v-if="message['type'] === 'user'"
@@ -50,6 +50,7 @@
                     sent
                     text-color="white"
                     bg-color="primary"
+                    class="user-text"
                   >
                     <div>{{ message["message"] }}</div>
                   </q-chat-message>
@@ -212,9 +213,15 @@ export default {
   display: flex;
   justify-content: center;
 }
+.user-text {
+  padding-right: 10px;
+}
 .chat-area {
   flex-grow: 1;
   margin: 10px;
+}
+.chat-area .fit {
+  width: 100%;
 }
 
 .chat-window {

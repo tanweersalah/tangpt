@@ -17,7 +17,9 @@ body {
   max-width: 100%;
   overflow-x: hidden !important;
 }
-
+/* * {
+  outline: 1px solid #f00 !important;
+} */
 @media (min-width: 1024px) {
   body {
     display: flex;
