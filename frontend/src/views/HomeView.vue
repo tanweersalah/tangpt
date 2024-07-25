@@ -207,13 +207,13 @@ export default {
 
 <style scoped>
 .page-content {
-  height: 100vh;
+  height: 100dvh;
   width: 100%;
   display: flex;
   justify-content: center;
 }
 .chat-area {
-  flex: 1 0 auto;
+  flex-grow: 1;
   padding: 0 20px 0 20px;
 }
 
@@ -226,7 +226,6 @@ export default {
 }
 .chat-text-box {
   align-self: center;
-  flex-shrink: 0;
   max-width: 900px;
   width: 100%;
   padding-left: 20px;
