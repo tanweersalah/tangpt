@@ -1,11 +1,7 @@
 <template>
   <main class="home-container">
     <div class="q-pa-m">
-      <q-layout
-        view="hHh Lpr lff"
-        
-        class="shadow-2 rounded-borders"
-      >
+      <q-layout view="hHh Lpr lff" class="shadow-2 rounded-borders">
         <q-header elevated class="bg-black">
           <q-toolbar>
             <q-btn flat @click="drawer = !drawer" round dense icon="menu" />
@@ -21,7 +17,7 @@
           bordered
           class="bg-grey-9"
         >
-        <!-- <q-btn label="Scroll to bottom" color="primary" @click="scrollToBottom" ></q-btn> -->
+          <!-- <q-btn label="Scroll to bottom" color="primary" @click="scrollToBottom" ></q-btn> -->
           <q-scroll-area class="fit">
             <q-list>
               <template v-for="(menuItem, index) in menuList" :key="index">
@@ -45,41 +41,34 @@
 
         <q-page-container class="page-content">
           <div class="chat-window">
-            
-            <div class="q-pa-md row justify-center">
-              
-              <q-scroll-area class="fit" style="width: 100%"  ref="chatScroll">
-                <div v-for="(message,index) in messages" :key="index"> 
-                <q-chat-message v-if="message['type']==='user'"
-                  name="me"
-                  
-                  
-                  sent
-                  text-color="white"
-                  bg-color="primary"
-                >
-                  <div>{{message['message']}}</div>
-
+            <div class="chat-area">
+              <q-scroll-area class="fit" style="width: 100%" ref="chatScroll">
+                <div v-for="(message, index) in messages" :key="index">
+                  <q-chat-message
+                    v-if="message['type'] === 'user'"
+                    name="me"
+                    sent
+                    text-color="white"
+                    bg-color="primary"
+                  >
+                    <div>{{ message["message"] }}</div>
                   </q-chat-message>
 
-                <q-chat-message v-if="message['type']==='gpt'" 
-                  name="TanGPT"
-                  avatar="https://geeksgod.com/wp-content/uploads/2021/05/Logopit_1603470318463-300x300.png"
-                  
-                  text-color="black"
-                >
-                <div v-html='message["message"]' />
-                  <!-- <q-spinner-dots size="2rem" /> -->
-                </q-chat-message>
-                
-
+                  <q-chat-message
+                    v-if="message['type'] === 'gpt'"
+                    name="TanGPT"
+                    text-color="black"
+                  >
+                    <div v-html="message['message']" />
+                    <!-- <q-spinner-dots size="2rem" /> -->
+                  </q-chat-message>
                 </div>
-                <q-chat-message v-if='message_procession'  
+                <q-chat-message
+                  v-if="message_procession"
                   name="TanGPT"
                   avatar="https://geeksgod.com/wp-content/uploads/2021/05/Logopit_1603470318463-300x300.png"
                   bg-color="green"
                 >
-                
                   <q-spinner-dots size="2rem" />
                 </q-chat-message>
                 <q-scroll-observer />
@@ -90,17 +79,24 @@
               <q-input
                 rounded
                 outlined
-                dense
+                filled
                 autogrow
+                type="textarea"
                 class="chat-input"
                 bg-color="grey"
                 v-model="message"
                 placeholder="Type a message"
               >
                 <template v-slot:append>
-                  <q-avatar @click="get_response(message)">
-                    <img src="https://cdn.quasar.dev/logo-v2/svg/logo.svg" />
-                  </q-avatar>
+                  <q-btn
+                    class="send-button"
+                    round
+                    dense
+                    flat
+                    icon="send"
+                    color="black"
+                    @click="get_response(message)"
+                  />
                 </template>
               </q-input>
             </div>
@@ -113,7 +109,7 @@
 
 <script>
 import { inject, ref } from "vue";
-import {marked} from 'marked';
+import { marked } from "marked";
 
 const menuList = [
   {
@@ -124,7 +120,6 @@ const menuList = [
 ];
 
 export default {
- 
   setup() {
     return {
       drawer: ref(false),
@@ -134,85 +129,79 @@ export default {
   created() {
     var uniqueId = this.generateUniqueId();
 
-        // Store the new unique ID in session storage
-        sessionStorage.setItem('uniqueId',uniqueId);
-    
-    console.log(uniqueId)
+    // Store the new unique ID in session storage
+    sessionStorage.setItem("uniqueId", uniqueId);
+
+    console.log(uniqueId);
   },
-  methods:{
-
+  methods: {
     getUniqueId() {
-    // Define the key used to store the unique ID in session storage
-    const uniqueIdKey = 'uniqueId';
+      // Define the key used to store the unique ID in session storage
+      const uniqueIdKey = "uniqueId";
 
-    // Check if the unique ID is already stored in session storage
-    let uniqueId = sessionStorage.getItem(uniqueIdKey);
+      // Check if the unique ID is already stored in session storage
+      let uniqueId = sessionStorage.getItem(uniqueIdKey);
 
-    // If the unique ID does not exist, generate a new one
-    if (!uniqueId) {
+      // If the unique ID does not exist, generate a new one
+      if (!uniqueId) {
         // Generate a new unique ID
         uniqueId = this.generateUniqueId();
 
         // Store the new unique ID in session storage
         sessionStorage.setItem(uniqueIdKey, uniqueId);
-    }
+      }
 
-    // Return the unique ID
-    return uniqueId;
-},
+      // Return the unique ID
+      return uniqueId;
+    },
 
-// Helper function to generate a new unique ID
- generateUniqueId() {
-    // You can use any unique ID generation logic here
-    // This example uses a combination of the current timestamp and a random number
-    return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
-},
+    // Helper function to generate a new unique ID
+    generateUniqueId() {
+      // You can use any unique ID generation logic here
+      // This example uses a combination of the current timestamp and a random number
+      return "id-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+    },
     scrollToBottom() {
       const scrollArea = this.$refs.chatScroll;
       if (scrollArea && scrollArea.$el) {
-        const scrollElement = scrollArea.$el.querySelector('.q-scrollarea__container');
+        const scrollElement = scrollArea.$el.querySelector(
+          ".q-scrollarea__container"
+        );
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight;
         }
       }
-    }
+    },
 
-    
-  ,
-    async get_response(text){
-      var u_id = this.getUniqueId()
-      console.log(u_id)
-      this.messages.push({"type": "user", "message":text});
-      this.message_procession = true
+    async get_response(text) {
+      var u_id = this.getUniqueId();
+      console.log(u_id);
+      this.messages.push({ type: "user", message: text });
+      this.message_procession = true;
       setTimeout(() => {
-    this.scrollToBottom();
-}, 200);
+        this.scrollToBottom();
+      }, 200);
       var new_message = await this.backend.getGptResponse(text, u_id);
-      this.message_procession = false
-      
-      
+      this.message_procession = false;
 
-      console.log(new_message)
+      console.log(new_message);
       var html_msg = this.renderedMarkdown(new_message);
-      this.messages.push({"type": "gpt", "message":html_msg});
-      setTimeout(() => {
-    this.scrollToBottom();
-}, 1000);
-      
+      this.messages.push({ type: "gpt", message: html_msg });
+      this.message = "";
     },
     renderedMarkdown(text) {
       return marked(text);
-    }},
-  
-  
-  data(){
+    },
+  },
+
+  data() {
     return {
-      backend : inject('backendService'),
-      messages : [],
-      message_procession : false,
+      backend: inject("backendService"),
+      messages: [],
+      message_procession: false,
       scrollsize: 0,
-    }
-  }
+    };
+  },
 };
 </script>
 
@@ -222,23 +211,32 @@ export default {
   width: 100%;
   display: flex;
   justify-content: center;
-
 }
+.chat-area {
+  flex-grow: 1;
+  padding: 0 20px 0 20px;
+}
+
 .chat-window {
-  
   max-width: 1200px;
   font-size: 1.1rem;
-  display: grid;
-  grid-template-rows: auto 70px;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   width: 100%;
 }
 .chat-text-box {
   align-self: center;
+
+  max-width: 900px;
+  width: 100%;
   padding-left: 20px;
   padding-right: 20px;
+  padding-bottom: 20px;
 }
 .chat-input {
+  max-height: 300px;
+  overflow: auto;
   width: 100%;
 }
 
@@ -254,11 +252,11 @@ export default {
 .chat-container {
   background-color: aquamarine;
 }
-</style>
 
-<style lang="sass">
-.my-emoticon
-  vertical-align: middle
-  height: 2em
-  width: 2em
+img {
+  background: antiquewhite !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+}
 </style>
