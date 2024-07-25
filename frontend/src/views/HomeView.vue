@@ -214,7 +214,7 @@ export default {
 }
 .chat-area {
   flex-grow: 1;
-  padding: 0 20px 0 20px;
+  margin: 10px;
 }
 
 .chat-window {
