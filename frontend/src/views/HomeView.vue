@@ -1,7 +1,7 @@
 <template>
   <main class="home-container">
     <div class="q-pa-m">
-      <q-layout view="hHh Lpr lff" class="shadow-2 rounded-borders">
+      <q-layout class="shadow-2 rounded-borders">
         <q-header elevated class="bg-black">
           <q-toolbar>
             <q-btn flat @click="drawer = !drawer" round dense icon="menu" />
@@ -43,6 +43,28 @@
           <div class="chat-window">
             <div class="chat-area">
               <q-scroll-area class="fit" ref="chatScroll">
+                <div class="welcome-msg" v-if="messages.length === 0">
+                  <MessageBox
+                    text="Quiz me on ancient civilizations"
+                    icon="school"
+                    icon_color="blue"
+                  />
+                  <MessageBox
+                    text="Content calendar for TikTok"
+                    icon="edit"
+                    icon_color="yellow"
+                  />
+                  <MessageBox
+                    text="Activities to make friends in new city"
+                    icon="lightbulb"
+                    icon_color="orange"
+                  />
+                  <MessageBox
+                    text="Plan a relaxing day"
+                    icon="flight"
+                    icon_color="green"
+                  />
+                </div>
                 <div v-for="(message, index) in messages" :key="index">
                   <q-chat-message
                     v-if="message['type'] === 'user'"
@@ -111,6 +133,7 @@
 <script>
 import { inject, ref } from "vue";
 import { marked } from "marked";
+import MessageBox from "../components/MessageBox.vue";
 
 const menuList = [
   {
@@ -121,6 +144,7 @@ const menuList = [
 ];
 
 export default {
+  components: { MessageBox },
   setup() {
     return {
       drawer: ref(false),
@@ -207,6 +231,15 @@ export default {
 </script>
 
 <style scoped>
+.welcome-msg {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 10px;
+
+  height: 90dvh;
+}
 .page-content {
   height: 100dvh;
   width: 100%;
