@@ -99,29 +99,30 @@
             </div>
 
             <div class="chat-text-box">
-              <q-input
-                rounded
-                outlined
-                filled
-                autogrow
-                type="textarea"
-                class="chat-input"
-                bg-color="grey"
-                v-model="message"
-                placeholder="Type a message"
-              >
-                <template v-slot:append>
-                  <q-btn
-                    class="send-button"
-                    round
-                    dense
-                    flat
-                    icon="send"
-                    color="black"
-                    @click="get_response(message)"
-                  />
-                </template>
-              </q-input>
+              <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
+                <q-input
+                  rounded
+                  outlined
+                  standout
+                  class="chat-input"
+                  bg-color="grey"
+                  v-model="message"
+                  placeholder="Type a message"
+                >
+                  <template v-slot:append>
+                    <q-btn
+                      class="send-button"
+                      round
+                      dense
+                      flat
+                      icon="send"
+                      color="black"
+                      type="submit"
+                      @click="get_response()"
+                    />
+                  </template>
+                </q-input>
+              </q-form>
             </div>
           </div>
         </q-page-container>
@@ -198,21 +199,25 @@ export default {
       }
     },
 
-    async get_response(text) {
-      var u_id = this.getUniqueId();
-      console.log(u_id);
-      this.messages.push({ type: "user", message: text });
-      this.message_procession = true;
-      setTimeout(() => {
-        this.scrollToBottom();
-      }, 200);
-      var new_message = await this.backend.getGptResponse(text, u_id);
-      this.message_procession = false;
-
-      console.log(new_message);
-      var html_msg = this.renderedMarkdown(new_message);
-      this.messages.push({ type: "gpt", message: html_msg });
+    async get_response() {
+      var text = this.message.trim();
       this.message = "";
+      if (text !== "") {
+        var u_id = this.getUniqueId();
+        console.log(u_id);
+        this.messages.push({ type: "user", message: text });
+        this.message_procession = true;
+        setTimeout(() => {
+          this.scrollToBottom();
+        }, 200);
+        var new_message = await this.backend.getGptResponse(text, u_id);
+        this.message_procession = false;
+
+        console.log(new_message);
+        var html_msg = this.renderedMarkdown(new_message);
+        this.messages.push({ type: "gpt", message: html_msg });
+        this.message = "";
+      }
     },
     renderedMarkdown(text) {
       return marked(text);
@@ -238,7 +243,7 @@ export default {
   align-content: center;
   gap: 10px;
 
-  height: 90dvh;
+  height: 70vh;
 }
 .page-content {
   height: 100dvh;
