@@ -4,7 +4,7 @@ import axios from "axios";
 
 export default class BackendService {
   constructor() {
-    this.apiUrl = "https://tangpt.tanflix.me/api/invoke";
+    this.apiUrl = "https://tangpt.tanflix.me/api/chat";
   }
 
   async getGptResponse(input_message, session_id) {
