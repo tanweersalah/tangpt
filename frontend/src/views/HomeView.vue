@@ -211,22 +211,27 @@ export default {
           this.llms[this.selected_model]["llm"],
           this.llms[this.selected_model]["model_name"]
         );
-        var response = await this.backend.getGptResponse(
-          text,
-          u_id,
-          this.llms[this.selected_model]["llm"],
-          this.llms[this.selected_model]["model_name"]
-        );
-        this.message_procession = false;
+        try {
+          var response = await this.backend.getGptResponse(
+            text,
+            u_id,
+            this.llms[this.selected_model]["llm"],
+            this.llms[this.selected_model]["model_name"]
+          );
 
-        console.log(response);
-        if (response.status == 200) {
-          var html_msg = this.renderedMarkdown(response.data);
-          this.messages.push({ type: "gpt", message: html_msg });
-          this.message = "";
-        } else {
-          this.showNotif(response.status);
+          if (response.status == 200) {
+            console.log(response);
+            var html_msg = this.renderedMarkdown(response.data["response"]);
+            this.messages.push({ type: "gpt", message: html_msg });
+            this.message = "";
+          }
+        } catch (error) {
+          // Handle the error
+          console.error("Error : ", error);
+          this.showNotif(error);
+          this.messages.pop();
         }
+        this.message_procession = false;
       }
     },
     renderedMarkdown(text) {
@@ -268,7 +273,7 @@ export default {
         },
         "gemma-7b-it": {
           llm: "GROQ",
-          model_name: "gemma-7b-i",
+          model_name: "gemma-7b-it",
         },
         "gpt-4o-mini": { llm: "OPENAI", model_name: "gpt-4o-mini" },
         "gpt-4o": { llm: "OPENAI", model_name: "gpt-4o" },

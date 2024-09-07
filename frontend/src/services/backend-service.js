@@ -20,17 +20,13 @@ export default class BackendService {
       model_name: model_name,
     };
 
-    try {
-      const response = await axios.post(this.apiUrl, body, {
-        headers: {
-          "Content-Type": "application/json", // Setting the request content type
-        },
-      });
+    const response = await axios.post(this.apiUrl, body, {
+      headers: {
+        "Content-Type": "application/json", // Setting the request content type
+      },
+    });
 
-      console.log(response.status); // Logging the response data
-      return response;
-    } catch (error) {
-      console.error("Error:", error);
-    }
+    console.log(response.status); // Logging the response data
+    return response;
   }
 }
