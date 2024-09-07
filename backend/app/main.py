@@ -129,7 +129,7 @@ auth_message = "To use OPEN AI LLMs you need to be authenticated. Please provide
 
 def input_router(state: AgentState):
     if state['auth_needed'] and not state['is_authenticated']:
-        return 'END'
+        return END
     decision = router_llm_structured.invoke(state['messages'])
 
     return decision.decision
