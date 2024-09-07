@@ -118,16 +118,30 @@ from langgraph.graph.message import add_messages
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
+    is_authenticated: bool
+    auth_needed: bool
+    llm: str
 
 
 ## Node Agents
 
+auth_message = "To use OPEN AI LLMs you need to be authenticated. Please provide the secret code."
+
 def input_router(state: AgentState):
+    if state['auth_needed'] and not state['is_authenticated']:
+        return 'END'
     decision = router_llm_structured.invoke(state['messages'])
 
     return decision.decision
 
-
+def auth(state: AgentState):
+    auth_needed = False
+    if state['llm'] == 'OPENAI':
+        auth_needed = True
+        
+        return {'auth_needed' : auth_needed, 'is_authenticated' : False, 'messages' : [("ai", auth_message)]}
+    return {'auth_needed' : auth_needed, 'is_authenticated' : False}
+    
 
 def general_llm_agent(state : AgentState):
 
@@ -148,8 +162,10 @@ workflow = StateGraph(AgentState)
 
 workflow.add_node('General' ,general_llm_agent)
 workflow.add_node('RAG', rag_query)
+workflow.add_node('Auth', auth)
 
-workflow.add_conditional_edges(START,input_router )
+workflow.add_edge(START,'Auth' )
+workflow.add_conditional_edges('Auth',input_router )
 workflow.add_edge('General', END)
 workflow.add_edge('RAG', END)
 
@@ -197,12 +213,16 @@ async def get_response(request: RequestModel):
         conversation_history = get_session_history(request.session_id)
         conversation_history.append(("user", request.message))
         
-        result = graph.invoke({'messages': conversation_history})
+        result = graph.invoke({'messages': conversation_history, 
+                               'llm': request.llm
+                               
+                               })
         
         assistant_response = result['messages'][-1].content
         
-        conversation_history.append(("assistant", assistant_response))
-        
+        if assistant_response != auth_message:
+            conversation_history.append(("assistant", assistant_response))
+        print(conversation_history)
         return JSONResponse(
             content={"response": assistant_response},
             status_code=status.HTTP_200_OK

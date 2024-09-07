@@ -91,6 +91,7 @@
                   rounded
                   outlined
                   standout
+                  ref="chatInput"
                   class="chat-input"
                   bg-color="grey"
                   v-model="message"
@@ -100,7 +101,6 @@
                     <q-btn
                       class="send-button"
                       round
-                      dense
                       flat
                       icon="send"
                       color="black"
@@ -148,7 +148,9 @@ export default {
   },
 
   components: { MessageBox },
-
+  mounted() {
+    this.focusInput();
+  },
   created() {
     var uniqueId = this.generateUniqueId();
 
@@ -158,6 +160,9 @@ export default {
     console.log(uniqueId);
   },
   methods: {
+    focusInput() {
+      this.$refs.chatInput.focus();
+    },
     getUniqueId() {
       // Define the key used to store the unique ID in session storage
       const uniqueIdKey = "uniqueId";
@@ -232,6 +237,7 @@ export default {
           this.messages.pop();
         }
         this.message_procession = false;
+        this.focusInput();
       }
     },
     renderedMarkdown(text) {

@@ -3,12 +3,11 @@
 #app {
   width: 100%;
 }
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+a {
+  color: #9c27b0;
+  background-color: aliceblue;
+  padding: 0px 10px 0 10px;
+  border-radius: 2px;
 }
 
 @media (hover: hover) {
