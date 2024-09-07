@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from langserve import add_routes
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.indexes.vectorstore import VectorStoreIndexWrapper
@@ -25,6 +26,8 @@ load_dotenv()
 class RequestModel(BaseModel):
     message: str
     session_id:str
+    llm: str
+    model_name : str
 
 groq_api_key = os.getenv("GROQ_API_KEY") 
 os.environ['LANGCHAIN_API_KEY'] = os.getenv("LANGCHAIN_API_KEY")
@@ -74,14 +77,40 @@ db = FAISS.load_local(db_path, embedding ,allow_dangerous_deserialization=True)
 vector_store_wrapper = VectorStoreIndexWrapper(vectorstore= db)
 
 ##  LLMs
+router_llm_structured,general_llm = None,None
 
-router_llm = ChatGroq(model='llama-3.1-8b-instant')
+def get_llm(llm_name, model):
+    if llm_name == "GROQ":
+        #'llama-3.1-8b-instant'
+        router_llm = ChatGroq(model=model)
 
-router_llm_structured = router_llm.with_structured_output(DecisionRouter)
+        router_llm_structured = router_llm.with_structured_output(DecisionRouter)
+
+        general_llm = ChatGroq(model=model)
+
+    elif llm_name == "OPENAI":
+        #gpt-4o-mini
+        router_llm = ChatOpenAI(model=model)
+
+        router_llm_structured = router_llm.with_structured_output(DecisionRouter)
+
+        general_llm = ChatOpenAI(model=model)
+    else:
+        router_llm = ChatGroq(model='llama-3.1-8b-instant')
+
+        router_llm_structured = router_llm.with_structured_output(DecisionRouter)
+
+        general_llm = ChatGroq(model='llama-3.1-8b-instant')
+
+    
+    return router_llm_structured, general_llm
 
 
 
-general_llm = ChatGroq(model='llama-3.1-8b-instant')
+
+
+
+
 
 ## State
 
@@ -158,7 +187,8 @@ async def get_response(request : RequestModel):
 
 @app.post("/chat")
 async def get_response(request : RequestModel):
-
+    global router_llm_structured, general_llm
+    router_llm_structured, general_llm = get_llm(request.llm, request.model_name)
     conversation_history = get_session_history(request.session_id)
     # Add the user's message to the conversation history
     conversation_history.append(("user", request.message))
