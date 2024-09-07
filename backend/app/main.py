@@ -185,27 +185,44 @@ async def get_response(request : RequestModel):
     config = {"configurable": {"session_id": request.session_id}}
     return chain.invoke([HumanMessage(request.message)], config=config)
 
-@app.post("/chat")
-async def get_response(request : RequestModel):
-    global router_llm_structured, general_llm
-    router_llm_structured, general_llm = get_llm(request.llm, request.model_name)
-    conversation_history = get_session_history(request.session_id)
-    # Add the user's message to the conversation history
-    conversation_history.append(("user", request.message))
-    
-    
-    #print({'messages': conversation_history})
-    result = graph.invoke({'messages': conversation_history})
-    
-    # Extract the assistant's response 
-    assistant_response = result['messages'][-1].content 
-    
-    #print("Assistant:", assistant_response)
-    
-    # Add the assistant's response to the conversation history
-    conversation_history.append(("assistant", assistant_response))
+from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 
-    return assistant_response
+@app.post("/chat")
+async def get_response(request: RequestModel):
+    try:
+        global router_llm_structured, general_llm
+        router_llm_structured, general_llm = get_llm(request.llm, request.model_name)
+        
+        conversation_history = get_session_history(request.session_id)
+        conversation_history.append(("user", request.message))
+        
+        result = graph.invoke({'messages': conversation_history})
+        
+        assistant_response = result['messages'][-1].content
+        
+        conversation_history.append(("assistant", assistant_response))
+        
+        return JSONResponse(
+            content={"response": assistant_response},
+            status_code=status.HTTP_200_OK
+        )
+    
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid input: {str(ve)}"
+        )
+    except KeyError as ke:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Missing key in response: {str(ke)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
 
 
     

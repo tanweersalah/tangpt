@@ -11,32 +11,19 @@
 
         <q-drawer
           v-model="drawer"
-          show-if-above
           :width="200"
           :breakpoint="500"
           bordered
           class="bg-grey-9"
         >
-          <!-- <q-btn label="Scroll to bottom" color="primary" @click="scrollToBottom" ></q-btn> -->
-          <q-scroll-area class="fit">
-            <q-list>
-              <template v-for="(menuItem, index) in menuList" :key="index">
-                <q-item
-                  clickable
-                  :active="menuItem.label === 'Outbox'"
-                  v-ripple
-                >
-                  <q-item-section avatar>
-                    <q-icon :name="menuItem.icon" />
-                  </q-item-section>
-                  <q-item-section>
-                    {{ menuItem.label }}
-                  </q-item-section>
-                </q-item>
-                <q-separator :key="'sep' + index" v-if="menuItem.separator" />
-              </template>
-            </q-list>
-          </q-scroll-area>
+          <q-select
+            outlined
+            dark
+            behavior="dialog"
+            v-model="selected_model"
+            :options="options"
+            label="Select Model"
+          />
         </q-drawer>
 
         <q-page-container class="page-content">
@@ -135,6 +122,7 @@
 import { inject, ref } from "vue";
 import { marked } from "marked";
 import MessageBox from "../components/MessageBox.vue";
+import { useQuasar } from "quasar";
 
 const menuList = [
   {
@@ -145,13 +133,22 @@ const menuList = [
 ];
 
 export default {
-  components: { MessageBox },
   setup() {
+    const $q = useQuasar();
+
     return {
-      drawer: ref(false),
-      menuList,
+      showNotif(msg) {
+        $q.notify({
+          position: "top",
+          message: "Server Error : " + msg,
+          color: "red",
+        });
+      },
     };
   },
+
+  components: { MessageBox },
+
   created() {
     var uniqueId = this.generateUniqueId();
 
@@ -210,13 +207,26 @@ export default {
         setTimeout(() => {
           this.scrollToBottom();
         }, 200);
-        var new_message = await this.backend.getGptResponse(text, u_id);
+        console.log(
+          this.llms[this.selected_model]["llm"],
+          this.llms[this.selected_model]["model_name"]
+        );
+        var response = await this.backend.getGptResponse(
+          text,
+          u_id,
+          this.llms[this.selected_model]["llm"],
+          this.llms[this.selected_model]["model_name"]
+        );
         this.message_procession = false;
 
-        console.log(new_message);
-        var html_msg = this.renderedMarkdown(new_message);
-        this.messages.push({ type: "gpt", message: html_msg });
-        this.message = "";
+        console.log(response);
+        if (response.status == 200) {
+          var html_msg = this.renderedMarkdown(response.data);
+          this.messages.push({ type: "gpt", message: html_msg });
+          this.message = "";
+        } else {
+          this.showNotif(response.status);
+        }
       }
     },
     renderedMarkdown(text) {
@@ -226,10 +236,51 @@ export default {
 
   data() {
     return {
+      options: [
+        "llama-3.1-8b-instant",
+        "llama-3.1-70b-versatile",
+        "gpt-4o-mini",
+        "gpt-4o",
+        "gpt-4-turbo",
+        "gpt-3.5-turbo",
+        "gemma2-9b-it",
+        "gemma-7b-it",
+
+        "llama3-8b-8192",
+      ],
+      selected_model: "llama-3.1-8b-instant",
+      llms: {
+        "llama3-8b-8192": {
+          llm: "GROQ",
+          model_name: "llama3-8b-8192",
+        },
+        "llama-3.1-70b-versatile": {
+          llm: "GROQ",
+          model_name: "llama-3.1-70b-versatile",
+        },
+        "llama-3.1-8b-instant": {
+          llm: "GROQ",
+          model_name: "llama-3.1-8b-instant",
+        },
+        "gemma2-9b-it": {
+          llm: "GROQ",
+          model_name: "gemma2-9b-it",
+        },
+        "gemma-7b-it": {
+          llm: "GROQ",
+          model_name: "gemma-7b-i",
+        },
+        "gpt-4o-mini": { llm: "OPENAI", model_name: "gpt-4o-mini" },
+        "gpt-4o": { llm: "OPENAI", model_name: "gpt-4o" },
+        "gpt-4-turbo": { llm: "OPENAI", model_name: "gpt-4-turbo" },
+        "gpt-3.5-turbo": { llm: "OPENAI", model_name: "gpt-3.5-turbo" },
+      },
       backend: inject("backendService"),
+
       messages: [],
       message_procession: false,
       scrollsize: 0,
+      drawer: false,
     };
   },
 };
