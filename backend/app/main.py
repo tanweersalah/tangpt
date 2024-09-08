@@ -1,4 +1,5 @@
-from typing import Annotated, Literal, TypedDict
+from typing import Annotated, Literal
+from typing_extensions import TypedDict
 from fastapi import FastAPI
 import os
 from dotenv import load_dotenv
