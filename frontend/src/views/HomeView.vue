@@ -66,17 +66,18 @@
 
                   <q-chat-message
                     v-if="message['type'] === 'gpt'"
-                    name="TanGPT"
+                    :name="message['label']"
                     text-color="black"
                   >
                     <div v-html="message['message']" />
                     <!-- <q-spinner-dots size="2rem" /> -->
                   </q-chat-message>
                 </div>
+                <!-- avatar="https://geeksgod.com/wp-content/uploads/2021/05/Logopit_1603470318463-300x300.png"
+                   -->
                 <q-chat-message
                   v-if="message_procession"
                   name="TanGPT"
-                  avatar="https://geeksgod.com/wp-content/uploads/2021/05/Logopit_1603470318463-300x300.png"
                   bg-color="green"
                 >
                   <q-spinner-dots size="2rem" />
@@ -93,11 +94,22 @@
                   standout
                   ref="chatInput"
                   class="chat-input"
-                  bg-color="grey"
+                  :bg-color="auth_required ? 'red-4' : 'grey'"
                   v-model="message"
-                  placeholder="Type a message"
+                  :type="auth_required && isPwd ? 'password' : 'text'"
+                  :placeholder="
+                    auth_required
+                      ? 'Provide Your Super Secret Code'
+                      : 'Type a message'
+                  "
                 >
                   <template v-slot:append>
+                    <q-icon
+                      v-if="auth_required"
+                      :name="isPwd ? 'visibility_off' : 'visibility'"
+                      class="cursor-pointer"
+                      @click="isPwd = !isPwd"
+                    />
                     <q-btn
                       class="send-button"
                       round
@@ -123,14 +135,6 @@ import { inject, ref } from "vue";
 import { marked } from "marked";
 import MessageBox from "../components/MessageBox.vue";
 import { useQuasar } from "quasar";
-
-const menuList = [
-  {
-    icon: "inbox",
-    label: "Chat History",
-    separator: true,
-  },
-];
 
 export default {
   setup() {
@@ -159,6 +163,11 @@ export default {
 
     console.log(uniqueId);
   },
+  watch: {
+    selected_model(newValue, oldValue) {
+      this.auth_required = false;
+    },
+  },
   methods: {
     focusInput() {
       this.$refs.chatInput.focus();
@@ -185,8 +194,6 @@ export default {
 
     // Helper function to generate a new unique ID
     generateUniqueId() {
-      // You can use any unique ID generation logic here
-      // This example uses a combination of the current timestamp and a random number
       return "id-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
     },
     scrollToBottom() {
@@ -203,11 +210,16 @@ export default {
 
     async get_response() {
       var text = this.message.trim();
+      var chat_msg = text;
+
+      if (this.auth_required) {
+        chat_msg = "🔐🌀 SOME SUPER SECRET CODE ⏳🔐";
+      }
       this.message = "";
       if (text !== "") {
         var u_id = this.getUniqueId();
         console.log(u_id);
-        this.messages.push({ type: "user", message: text });
+        this.messages.push({ type: "user", message: chat_msg });
         this.message_procession = true;
         setTimeout(() => {
           this.scrollToBottom();
@@ -227,7 +239,15 @@ export default {
           if (response.status == 200) {
             console.log(response);
             var html_msg = this.renderedMarkdown(response.data["response"]);
-            this.messages.push({ type: "gpt", message: html_msg });
+            this.messages.push({
+              type: "gpt",
+              label: `TanGPT (${this.selected_model})`,
+              message: html_msg,
+              auth_required: response.data["auth_required"],
+            });
+
+            this.auth_required = response.data["auth_required"];
+
             this.message = "";
           }
         } catch (error) {
@@ -247,6 +267,8 @@ export default {
 
   data() {
     return {
+      auth_required: false,
+      isPwd: true,
       options: [
         "llama-3.1-8b-instant",
         "llama-3.1-70b-versatile",

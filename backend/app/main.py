@@ -20,52 +20,58 @@ from langgraph.graph import StateGraph, END, START
 
 from collections import OrderedDict
 import os
+
+# init env keys
 load_dotenv()
+os.environ['LANGCHAIN_TRACING_V2'] = "true"
+
+print(os.environ.keys())
+
+## DataClass
 
 
+## State
+
+from langgraph.graph.message import add_messages
+
+class AgentState(TypedDict):
+    messages: Annotated[list, add_messages]
+    is_authenticated: bool
+    auth_required: bool
+    llm: str
+class DecisionRouter(BaseModel):
+    decision : Literal['RAG', 'General'] = Field(..., description="Chose correct option based on user input, If User ask about Tanweer , Use RAG else General")
+
+class SessionStore(BaseModel):
+    chat_history :list
+    state: AgentState
 class RequestModel(BaseModel):
     message: str
     session_id:str
     llm: str
     model_name : str
 
-groq_api_key = os.getenv("GROQ_API_KEY") 
-os.environ['LANGCHAIN_API_KEY'] = os.getenv("LANGCHAIN_API_KEY")
-os.environ['LANGCHAIN_PROJECT'] = os.getenv("LANGCHAIN_PROJECT")
 
-
-
-#groq_api_key = st.secrets["GROQ_API_KEY"]
-#os.environ['LANGCHAIN_API_KEY'] = st.secrets["LANGCHAIN_API_KEY"]
-#os.environ['LANGCHAIN_PROJECT'] = st.secrets["LANGCHAIN_PROJECT"]
-
-os.environ['LANGCHAIN_TRACING_V2'] = "true"
-
-model = ChatGroq(model="gemma-7b-it")
-
-
-parser = StrOutputParser()
-
-## inmemory chat history
+## inmemory session history
 store = OrderedDict()
 
-def get_session_history(session_id):
+def get_session_history(session_id) -> AgentState:
     ## Handle max 5 sessions
     if len(store) > 4 :
         store.popitem(last=False)
     
     if session_id not in store :
-        store[session_id]= []
+        #store[session_id]= SessionStore(chat_history=[],  state={})
+        store[session_id]= AgentState(messages=[], is_authenticated=False, auth_required=False)
+
     return store[session_id]
 
-with_message_history = RunnableWithMessageHistory(model,get_session_history)
 
-chain = with_message_history|parser
+def update_session_history(session_id, chat_history, auth_required , state):
+    store[session_id].chat_history = chat_history
+    store[session_id].auth_required = auth_required
+    store[session_id].state = state
 
-## DataClass
-
-class DecisionRouter(BaseModel):
-    decision : Literal['RAG', 'General'] = Field(..., description="Chose correct option based on user input, If User ask about Tanweer , Use RAG else General")
 
 
 
@@ -109,38 +115,46 @@ def get_llm(llm_name, model):
 
 
 
-
-
-
-## State
-
-from langgraph.graph.message import add_messages
-
-class AgentState(TypedDict):
-    messages: Annotated[list, add_messages]
-    is_authenticated: bool
-    auth_needed: bool
-    llm: str
-
-
 ## Node Agents
 
-auth_message = "To use OPEN AI LLMs you need to be authenticated. Please provide the secret code."
+auth_message = """
+🔐 Oops! Authentication needed for OpenAI LLMs! 🤖 \n
+Please enter the secret code 🗝️ or switch to a different LLM to proceed. 🔄
+"""
 
 def input_router(state: AgentState):
-    if state['auth_needed'] and not state['is_authenticated']:
+    if state.get('auth_required', False) :
         return END
+    
     decision = router_llm_structured.invoke(state['messages'])
 
     return decision.decision
 
 def auth(state: AgentState):
-    auth_needed = False
+    
+    auth_required = False
+    # Check previos state
+    is_authenticated = state.get('is_authenticated', False)
+    messages = []
+
     if state['llm'] == 'OPENAI':
-        auth_needed = True
         
-        return {'auth_needed' : auth_needed, 'is_authenticated' : False, 'messages' : [("ai", auth_message)]}
-    return {'auth_needed' : auth_needed, 'is_authenticated' : False}
+
+        if state.get('auth_required', False):
+            pw = state['messages'].pop()
+            if os.environ.get('SUPERSECRET') == pw.content:
+                is_authenticated = True
+                
+
+        if not is_authenticated:
+            auth_required = True
+            is_authenticated = False
+            messages = [("ai", auth_message)]
+        
+
+    return { 'is_authenticated' : is_authenticated,
+                 'auth_required' : auth_required, 'messages' : messages}
+    
     
 
 def general_llm_agent(state : AgentState):
@@ -210,21 +224,33 @@ async def get_response(request: RequestModel):
         global router_llm_structured, general_llm
         router_llm_structured, general_llm = get_llm(request.llm, request.model_name)
         
-        conversation_history = get_session_history(request.session_id)
-        conversation_history.append(("user", request.message))
+        session = get_session_history(request.session_id)
         
-        result = graph.invoke({'messages': conversation_history, 
-                               'llm': request.llm
-                               
-                               })
+
         
+        session.get('messages').append(("user", request.message))
+        session['llm'] = request.llm
+
+        
+        result = graph.invoke(session)
+
         assistant_response = result['messages'][-1].content
         
-        if assistant_response != auth_message:
-            conversation_history.append(("assistant", assistant_response))
-        print(conversation_history)
+        session['auth_required'] = result.get('auth_required', False)
+        session['is_authenticated'] = result.get('is_authenticated', False)
+
+        if session.get('auth_required'):
+            
+            return JSONResponse(
+            content={"response": assistant_response, "auth_required" : True},
+            status_code=status.HTTP_200_OK
+        )
+
+        session.get('messages').append(("assistant", assistant_response))
+        
+        
         return JSONResponse(
-            content={"response": assistant_response},
+            content={"response": assistant_response, "auth_required" : False},
             status_code=status.HTTP_200_OK
         )
     
