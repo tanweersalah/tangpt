@@ -22,12 +22,13 @@ strong {
 code {
   text-wrap: wrap;
   display: block;
+  width: fit-content;
   background-color: rgb(204, 204, 204);
   padding: 10px;
   margin: 5px;
   color: rgb(118, 52, 144);
   border: 1px solid rgba(0, 0, 0, 0.517);
-  border-radius: 20px;
+  border-radius: 5px;
 }
 
 @media (hover: hover) {
