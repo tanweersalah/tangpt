@@ -9,5 +9,6 @@ uvicorn
 pydantic
 langgraph
 langchain-openai
+faiss-cpu
 pytube
 youtube_transcript_api
