@@ -213,6 +213,7 @@ def summarize_content(state: AgentState):
     
     docs = document_splitter(youtube_doc)[:10]
 
+    print('subtitle doc count : ',len(docs))
     chain = load_summarize_chain(llm=general_llm, chain_type='stuff')
 
     response = chain.invoke(docs)
