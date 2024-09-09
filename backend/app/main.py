@@ -9,13 +9,15 @@ from langchain_openai import ChatOpenAI
 from langserve import add_routes
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.indexes.vectorstore import VectorStoreIndexWrapper
-
+from langchain_core.tools import tool
 from langchain_community.vectorstores import FAISS
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
+from youtube_api import YouTubeAPI
+from langgraph.prebuilt import ToolNode,tools_condition
 
 from langgraph.graph import StateGraph, END, START
 
@@ -26,7 +28,9 @@ import os
 load_dotenv()
 os.environ['LANGCHAIN_TRACING_V2'] = "true"
 
-print(os.environ.keys())
+yt_api = YouTubeAPI()
+
+
 
 ## DataClass
 
@@ -40,8 +44,10 @@ class AgentState(TypedDict):
     is_authenticated: bool
     auth_required: bool
     llm: str
+
+
 class DecisionRouter(BaseModel):
-    decision : Literal['RAG', 'General'] = Field(..., description="Chose correct option based on user input, If User ask about Tanweer , Use RAG else General")
+    decision : Literal['RAG', 'General', 'Media'] = Field(..., description="Chose correct option based on user input, If User ask about Tanweer use RAG  ,is user needs a video or youtube links use Media, else General")
 
 class SessionStore(BaseModel):
     chat_history :list
@@ -86,6 +92,8 @@ vector_store_wrapper = VectorStoreIndexWrapper(vectorstore= db)
 ##  LLMs
 router_llm_structured,general_llm = None,None
 
+openai_llm = ChatOpenAI()
+
 def get_llm(llm_name, model):
     if llm_name == "GROQ":
         #'llama-3.1-8b-instant'
@@ -112,6 +120,17 @@ def get_llm(llm_name, model):
     
     return router_llm_structured, general_llm
 
+## Tools
+
+@tool
+def get_media(search_text):
+    """Returns the video link and video title for given search_text, select the most relevant one"""
+
+    global yt_api
+    response = yt_api.search( search_text, max_results=1, video_type="video")
+    return response
+
+tools = [get_media]
 
 
 
@@ -164,10 +183,18 @@ def general_llm_agent(state : AgentState):
 
 
 def rag_query(state : AgentState):
-    print(state)
+    
     response = vector_store_wrapper.query(state['messages'][-1].content, general_llm)
 
     return {'messages' :[response] }
+
+def media_query(state: AgentState):
+    
+    model_with_yt = openai_llm.bind_tools(tools)
+    
+    response = model_with_yt.invoke(state['messages'])
+
+    return {'messages' :[response], 'video' : True }
 
 ## Graph Builder
 
@@ -178,6 +205,14 @@ workflow = StateGraph(AgentState)
 workflow.add_node('General' ,general_llm_agent)
 workflow.add_node('RAG', rag_query)
 workflow.add_node('Auth', auth)
+workflow.add_node('Media', media_query)
+
+
+tool_node = ToolNode(tools=tools)
+workflow.add_node('tools', tool_node)
+
+workflow.add_edge( 'tools','Media')
+workflow.add_conditional_edges('Media',tools_condition )
 
 workflow.add_edge(START,'Auth' )
 workflow.add_conditional_edges('Auth',input_router )

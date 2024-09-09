@@ -70,7 +70,13 @@
                     text-color="black"
                   >
                     <div v-html="message['message']" />
+
                     <!-- <q-spinner-dots size="2rem" /> -->
+                    <q-video
+                      v-if="message['videoLink'].length > 0"
+                      :src="message['videoLink'][0]"
+                      :ratio="16 / 9"
+                    />
                   </q-chat-message>
                 </div>
                 <!-- avatar="https://geeksgod.com/wp-content/uploads/2021/05/Logopit_1603470318463-300x300.png"
@@ -169,6 +175,51 @@ export default {
     },
   },
   methods: {
+    modifyLinksToOpenInNewWindow(htmlContent) {
+      // Create a temporary DOM element to parse the HTML
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlContent;
+
+      // Find all anchor tags
+      const links = tempDiv.getElementsByTagName("a");
+
+      // Modify each link
+      Array.from(links).forEach((link) => {
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener noreferrer");
+      });
+
+      // Return the modified HTML content
+      return tempDiv.innerHTML;
+    },
+    extractYouTubeLinks(text) {
+      const youtubeRegex =
+        /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(?:embed\/)?(?:v\/)?(?:shorts\/)?(?:\S+)/g;
+      return text.match(youtubeRegex) || [];
+    },
+    extractAndConvertYouTubeLinksHTML(htmlContent) {
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlContent;
+
+      const links = tempDiv.getElementsByTagName("a");
+
+      return Array.from(links)
+        .map((link) => link.href)
+        .filter(
+          (href) =>
+            href.includes("youtube.com/watch") || href.includes("youtu.be/")
+        )
+        .map((href) => {
+          let videoId;
+          if (href.includes("youtube.com/watch")) {
+            videoId = new URL(href).searchParams.get("v");
+          } else if (href.includes("youtu.be/")) {
+            videoId = href.split("youtu.be/")[1];
+          }
+          return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+        })
+        .filter(Boolean); // Remove any null values
+    },
     focusInput() {
       this.$refs.chatInput.focus();
     },
@@ -238,12 +289,17 @@ export default {
 
           if (response.status == 200) {
             console.log(response);
+
             var html_msg = this.renderedMarkdown(response.data["response"]);
+            html_msg = this.modifyLinksToOpenInNewWindow(html_msg);
+            console.log(html_msg);
+            console.log(this.extractAndConvertYouTubeLinksHTML(html_msg));
             this.messages.push({
               type: "gpt",
               label: `TanGPT (${this.selected_model})`,
               message: html_msg,
               auth_required: response.data["auth_required"],
+              videoLink: this.extractAndConvertYouTubeLinksHTML(html_msg),
             });
 
             this.auth_required = response.data["auth_required"];
