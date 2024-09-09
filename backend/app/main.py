@@ -209,11 +209,11 @@ def media_query(state: AgentState):
 
 def summarize_content(state: AgentState):
     print('doc',state)
-    youtube_doc=yt_api.summarize_content(state['url_to_summarize'])
+    youtube_doc=yt_api.get_english_subtitle_from_url(state['url_to_summarize'])
     
     docs = document_splitter(youtube_doc)[:10]
 
-    chain = load_summarize_chain(llm=general_llm, chain_type='refine')
+    chain = load_summarize_chain(llm=general_llm, chain_type='stuff')
 
     response = chain.invoke(docs)
 

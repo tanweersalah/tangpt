@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import validators
 from langchain_community.document_loaders import YoutubeLoader,WebBaseLoader
-
+from youtube_transcript_api._errors import NoTranscriptFound
 
 load_dotenv()
 class YouTubeAPI:
@@ -39,7 +39,32 @@ class YouTubeAPI:
             return None
 
 
-    
+    def get_english_subtitle_from_url(self,video_url):
+        # Initialize YoutubeLoader with the video URL
+        loader = YoutubeLoader.from_youtube_url(video_url , add_video_info=True, language="en")
+        
+        try:
+            # Try loading the manual English subtitles
+            docs = loader.load()
+            print("Manual English subtitles found.")
+        except NoTranscriptFound:
+            try:
+                # Fall back to auto-generated subtitles
+                docs = loader.load(generated=True)
+                print("Auto-generated English subtitles found.")
+            except NoTranscriptFound:
+
+                try:
+                    # Fall back to auto-translated subtitles (translated to English)
+                    docs = loader.load(translation=True)
+                    print("Auto-translated English subtitles found.")
+                except NoTranscriptFound:
+                    print("No English subtitles (manual, auto-generated, or translated) are available.")
+                    return None
+
+        return docs
+
+
     def summarize_content(self, url):
         if validators.url(url):
             if 'youtube' in url or 'youtu.be' in url :
