@@ -71,7 +71,11 @@
                     text-color="black"
                     bg-color="grey-4"
                   >
-                    <div class="chat-text" v-html="message['message']" />
+                    <div
+                      class="chat-text"
+                      ref="codeContainer"
+                      v-html="message['message']"
+                    />
 
                     <!-- <q-spinner-dots size="2rem" /> -->
                     <q-video
@@ -100,10 +104,11 @@
                 <q-input
                   rounded
                   outlined
-                  standout
+                  borderless
+                  clearable
                   ref="chatInput"
                   class="chat-input"
-                  :bg-color="auth_required ? 'red-4' : 'grey'"
+                  :bg-color="auth_required ? 'red-4' : 'grey-4'"
                   v-model="message"
                   :type="auth_required && isPwd ? 'password' : 'text'"
                   :placeholder="
@@ -144,12 +149,15 @@ import { inject, ref } from "vue";
 import { marked } from "marked";
 import MessageBox from "../components/MessageBox.vue";
 import { useQuasar } from "quasar";
+import hljs from "highlight.js";
+import "highlight.js/styles/tomorrow-night-blue.css"; // Choose your preferred theme
 
 export default {
   setup() {
     const $q = useQuasar();
 
     return {
+      message: ref(""),
       showNotif(msg) {
         $q.notify({
           position: "top",
@@ -164,6 +172,7 @@ export default {
   mounted() {
     this.focusInput();
   },
+
   created() {
     var uniqueId = this.generateUniqueId();
 
@@ -178,6 +187,16 @@ export default {
     },
   },
   methods: {
+    highlightCodeBlocks() {
+      // Ensure this method is called after the DOM has updated
+      this.$nextTick(() => {
+        // Select all <pre><code> elements
+        document.querySelectorAll("pre code").forEach((block) => {
+          // Apply highlighting to each block
+          hljs.highlightBlock(block);
+        });
+      });
+    },
     modifyLinksToOpenInNewWindow(htmlContent) {
       // Create a temporary DOM element to parse the HTML
       const tempDiv = document.createElement("div");
@@ -295,8 +314,6 @@ export default {
 
             var html_msg = this.renderedMarkdown(response.data["response"]);
             html_msg = this.modifyLinksToOpenInNewWindow(html_msg);
-            console.log(html_msg);
-            console.log(this.extractAndConvertYouTubeLinksHTML(html_msg));
             this.messages.push({
               type: "gpt",
               label: `TanGPT (${this.selected_model})`,
@@ -308,6 +325,7 @@ export default {
             this.auth_required = response.data["auth_required"];
 
             this.message = "";
+            this.highlightCodeBlocks();
           }
         } catch (error) {
           // Handle the error
@@ -384,7 +402,7 @@ export default {
 }
 .chat-bubble-ai {
   padding-left: 10px;
-  max-width: 80vw;
+  max-width: 90%;
 }
 .welcome-msg {
   display: flex;
@@ -428,8 +446,8 @@ export default {
   padding-bottom: 20px;
 }
 .chat-input {
+  font-size: 1.2rem;
   max-height: 300px;
-  overflow: auto;
   width: 100%;
 }
 
