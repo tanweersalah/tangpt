@@ -208,8 +208,11 @@ def media_query(state: AgentState):
     return {'messages' :[response], 'video' : True }
 
 def summarize_content(state: AgentState):
-    print('doc',state)
-    youtube_doc=yt_api.get_english_subtitle_from_url(state['url_to_summarize'])
+    
+    if os.getenv("ENV") == "LOCAL":
+        youtube_doc=yt_api.get_english_subtitle_from_url(state['url_to_summarize'])
+    else:
+        youtube_doc=yt_api.get_subtitle_rapid_api(state['url_to_summarize'])
     
     docs = document_splitter(youtube_doc)[:10]
 

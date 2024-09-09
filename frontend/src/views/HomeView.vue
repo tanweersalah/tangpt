@@ -58,18 +58,20 @@
                     name="me"
                     sent
                     text-color="white"
-                    bg-color="primary"
+                    bg-color="green-7"
                     class="user-text"
                   >
-                    <div>{{ message["message"] }}</div>
+                    <div class="chat-text">{{ message["message"] }}</div>
                   </q-chat-message>
 
                   <q-chat-message
                     v-if="message['type'] === 'gpt'"
                     :name="message['label']"
+                    class="chat-bubble-ai"
                     text-color="black"
+                    bg-color="grey-4"
                   >
-                    <div v-html="message['message']" />
+                    <div class="chat-text" v-html="message['message']" />
 
                     <!-- <q-spinner-dots size="2rem" /> -->
                     <q-video
@@ -84,7 +86,8 @@
                 <q-chat-message
                   v-if="message_procession"
                   name="TanGPT"
-                  bg-color="green"
+                  class="chat-bubble-ai"
+                  bg-color="grey-4"
                 >
                   <q-spinner-dots size="2rem" />
                 </q-chat-message>
@@ -376,6 +379,13 @@ export default {
 </script>
 
 <style scoped>
+.chat-text {
+  padding: 5px 5px 0px 5px;
+}
+.chat-bubble-ai {
+  padding-left: 10px;
+  max-width: 80vw;
+}
 .welcome-msg {
   display: flex;
   flex-wrap: wrap;

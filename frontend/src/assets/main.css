@@ -9,6 +9,26 @@ a {
   padding: 0px 10px 0 10px;
   border-radius: 2px;
 }
+h1,
+h2,
+h3 {
+  font-size: 2rem !important;
+}
+
+strong {
+  font-weight: bold;
+  color: rgb(124 42 42);
+}
+code {
+  text-wrap: wrap;
+  display: block;
+  background-color: rgb(204, 204, 204);
+  padding: 10px;
+  margin: 5px;
+  color: rgb(118, 52, 144);
+  border: 1px solid rgba(0, 0, 0, 0.517);
+  border-radius: 20px;
+}
 
 @media (hover: hover) {
   a:hover {

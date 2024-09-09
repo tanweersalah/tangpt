@@ -4,11 +4,16 @@ import os
 import validators
 from langchain_community.document_loaders import YoutubeLoader,WebBaseLoader
 from youtube_transcript_api._errors import NoTranscriptFound
+from langchain.docstore.document import Document
+
+
 
 load_dotenv()
 class YouTubeAPI:
     def __init__(self):
         self.api_key = os.getenv('YOUTUBE_API')
+        self.rapid_api_key = os.getenv('RAPID_API')
+        self.rapid_url = "https://youtube-transcripts.p.rapidapi.com/youtube/transcript"
         self.api_url = "https://www.googleapis.com/youtube/v3/search"
 
     def search(self, query, max_results=1, video_type="video",language="en"):
@@ -40,6 +45,7 @@ class YouTubeAPI:
 
 
     def get_english_subtitle_from_url(self,video_url):
+
         # Initialize YoutubeLoader with the video URL
         loader = YoutubeLoader.from_youtube_url(video_url , add_video_info=True, language="en")
         
@@ -63,6 +69,28 @@ class YouTubeAPI:
                     return None
 
         return docs
+
+    def get_subtitle_rapid_api(self, video_url):
+        params = {
+            
+            "url": video_url
+        }
+        headers = {
+            "x-rapidapi-key": self.rapid_api_key,
+            "x-rapidapi-host": "youtube-transcripts.p.rapidapi.com"
+        }
+        response = requests.get(self.rapid_url, params=params ,headers=headers)
+        print('rapid : ',response)
+        if response.status_code == 200:
+            search_results = response.json()
+
+            print('rapid : ',search_results)
+            subtitle_list = [i['text'] for i in search_results['content']]
+            complete_subtitle = " ".join(subtitle_list)
+            doc =  Document(page_content=complete_subtitle, metadata={"source": "youtube"})
+
+            return [doc]
+
 
 
     def summarize_content(self, url):
