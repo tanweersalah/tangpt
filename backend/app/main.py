@@ -18,8 +18,11 @@ from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from youtube_api import YouTubeAPI
 from langgraph.prebuilt import ToolNode,tools_condition
-
+from langchain.chains.summarize import load_summarize_chain
 from langgraph.graph import StateGraph, END, START
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+
 
 from collections import OrderedDict
 import os
@@ -44,11 +47,13 @@ class AgentState(TypedDict):
     is_authenticated: bool
     auth_required: bool
     llm: str
+    url_to_summarize : str
+    next_node : str
 
 
 class DecisionRouter(BaseModel):
-    decision : Literal['RAG', 'General', 'Media'] = Field(..., description="Chose correct option based on user input, If User ask about Tanweer use RAG  ,is user needs a video or youtube links use Media, else General")
-
+    decision : Literal['RAG', 'General', 'Media', 'SummarizeVideo'] = Field(..., description="Chose correct option based on user input, 1. If User ask any information related to Tanweer use RAG  ,2. If user needs a video or youtube links use Media,3. If user asking for summarizing a video use SummarizeVideo, else General")
+    link: str = Field(..., description="link for the video if user asking for summarizing any video , else keep it blank ")
 class SessionStore(BaseModel):
     chat_history :list
     state: AgentState
@@ -57,6 +62,11 @@ class RequestModel(BaseModel):
     session_id:str
     llm: str
     model_name : str
+
+## utils
+def document_splitter(document , chunk_size = 1000, chunk_overlap = 200):
+    splitter = RecursiveCharacterTextSplitter(chunk_size = chunk_size, chunk_overlap = chunk_overlap)
+    return splitter.split_documents(document)
 
 
 ## inmemory session history
@@ -94,12 +104,10 @@ router_llm_structured,general_llm = None,None
 
 openai_llm = ChatOpenAI()
 
-def get_llm(llm_name, model):
+def get_llm(llm_name, model, router_llm_openai=False):
     if llm_name == "GROQ":
         #'llama-3.1-8b-instant'
         router_llm = ChatGroq(model=model)
-
-        router_llm_structured = router_llm.with_structured_output(DecisionRouter)
 
         general_llm = ChatGroq(model=model)
 
@@ -107,16 +115,17 @@ def get_llm(llm_name, model):
         #gpt-4o-mini
         router_llm = ChatOpenAI(model=model)
 
-        router_llm_structured = router_llm.with_structured_output(DecisionRouter)
-
         general_llm = ChatOpenAI(model=model)
     else:
         router_llm = ChatGroq(model='llama-3.1-8b-instant')
 
-        router_llm_structured = router_llm.with_structured_output(DecisionRouter)
-
         general_llm = ChatGroq(model='llama-3.1-8b-instant')
 
+    if router_llm_openai:
+        router_llm = ChatOpenAI()
+    router_llm_structured = router_llm.with_structured_output(DecisionRouter)
+
+   
     
     return router_llm_structured, general_llm
 
@@ -143,12 +152,14 @@ Please enter the secret code 🗝️ or switch to a different LLM to proceed. �
 """
 
 def input_router(state: AgentState):
+    
     if state.get('auth_required', False) :
-        return END
+        return {'next_node' : 'END', 'url_to_summarize': ""}
     
     decision = router_llm_structured.invoke(state['messages'])
+    
 
-    return decision.decision
+    return {'next_node' : decision.decision, 'url_to_summarize': decision.link}
 
 def auth(state: AgentState):
     
@@ -196,28 +207,49 @@ def media_query(state: AgentState):
 
     return {'messages' :[response], 'video' : True }
 
+def summarize_content(state: AgentState):
+    print('doc',state)
+    youtube_doc=yt_api.summarize_content(state['url_to_summarize'])
+    
+    docs = document_splitter(youtube_doc)[:10]
+
+    chain = load_summarize_chain(llm=general_llm, chain_type='refine')
+
+    response = chain.invoke(docs)
+
+    return {'messages' :[response['output_text']] }
+
 ## Graph Builder
 
 from langgraph.graph import StateGraph, END, START
 
 workflow = StateGraph(AgentState)
 
+workflow.add_node('Auth', auth)
+workflow.add_node('Router' ,input_router)
+
 workflow.add_node('General' ,general_llm_agent)
 workflow.add_node('RAG', rag_query)
-workflow.add_node('Auth', auth)
 workflow.add_node('Media', media_query)
-
+workflow.add_node('Summarize', summarize_content)
 
 tool_node = ToolNode(tools=tools)
 workflow.add_node('tools', tool_node)
 
 workflow.add_edge( 'tools','Media')
-workflow.add_conditional_edges('Media',tools_condition )
-
 workflow.add_edge(START,'Auth' )
-workflow.add_conditional_edges('Auth',input_router )
+workflow.add_edge('Auth', 'Router' )
+workflow.add_conditional_edges('Router',lambda x : x['next_node'] ,{
+    "END" : END,
+    'General' : 'General',
+    'RAG' : 'RAG',
+    'SummarizeVideo' : 'Summarize',
+    'Media' : 'Media'
+})
+workflow.add_conditional_edges('Media',tools_condition )
 workflow.add_edge('General', END)
 workflow.add_edge('RAG', END)
+workflow.add_edge('Summarize', END)
 
 graph = workflow.compile()
 
@@ -258,7 +290,7 @@ from fastapi.responses import JSONResponse
 async def get_response(request: RequestModel):
     try:
         global router_llm_structured, general_llm
-        router_llm_structured, general_llm = get_llm(request.llm, request.model_name)
+        router_llm_structured, general_llm = get_llm(request.llm, request.model_name, True)
         
         session = get_session_history(request.session_id)
         

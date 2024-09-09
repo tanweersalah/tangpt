@@ -9,3 +9,5 @@ uvicorn
 pydantic
 langgraph
 langchain-openai
+pytube
+youtube_transcript_api
