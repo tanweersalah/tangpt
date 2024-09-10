@@ -210,7 +210,7 @@ def media_query(state: AgentState):
 
 def summarize_content(state: AgentState):
     
-    if os.getenv("ENV") == "LOCA":
+    if os.getenv("ENV") == "LOCAL":
         #youtube_doc=yt_api.get_english_subtitle_from_url(state['url_to_summarize'])
         youtube_subs=yt_api.get_youtube_transcript_text(state['url_to_summarize'])
     else:

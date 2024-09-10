@@ -81,7 +81,7 @@
                     <q-video
                       v-if="message['videoLink'].length > 0"
                       :src="message['videoLink'][0]"
-                      :ratio="16 / 9"
+                      :ratio="4 / 1"
                     />
                   </q-chat-message>
                 </div>
