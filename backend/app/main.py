@@ -21,6 +21,7 @@ from langgraph.prebuilt import ToolNode,tools_condition
 from langchain.chains.summarize import load_summarize_chain
 from langgraph.graph import StateGraph, END, START
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.prompts import ChatPromptTemplate
 
 
 
@@ -52,7 +53,7 @@ class AgentState(TypedDict):
 
 
 class DecisionRouter(BaseModel):
-    decision : Literal['RAG', 'General', 'Media', 'SummarizeVideo'] = Field(..., description="Chose correct option based on user input, 1. If User ask any information related to Tanweer use RAG  ,2. If user needs a video or youtube links use Media,3. If user asking for summarizing a video use SummarizeVideo, else General")
+    decision : Literal['RAG', 'General', 'Media', 'SummarizeVideo'] = Field(..., description="Chose correct option based on user input, 1. If User ask any information related to Tanweer use RAG  ,2. If user needs a video or youtube links use Media,3. If user asking for video explaination or video summarization use SummarizeVideo, use general for all task and all other explaination except Video")
     link: str = Field(..., description="link for the video if user asking for summarizing any video , else keep it blank ")
 class SessionStore(BaseModel):
     chat_history :list
@@ -156,7 +157,7 @@ def input_router(state: AgentState):
     if state.get('auth_required', False) :
         return {'next_node' : 'END', 'url_to_summarize': ""}
     
-    decision = router_llm_structured.invoke(state['messages'])
+    decision = router_llm_structured.invoke(state['messages'][-2:])
     
 
     return {'next_node' : decision.decision, 'url_to_summarize': decision.link}
@@ -209,19 +210,28 @@ def media_query(state: AgentState):
 
 def summarize_content(state: AgentState):
     
-    if os.getenv("ENV") == "LOCAL":
-        youtube_doc=yt_api.get_english_subtitle_from_url(state['url_to_summarize'])
+    if os.getenv("ENV") == "LOCA":
+        #youtube_doc=yt_api.get_english_subtitle_from_url(state['url_to_summarize'])
+        youtube_subs=yt_api.get_youtube_transcript_text(state['url_to_summarize'])
     else:
-        youtube_doc=yt_api.get_subtitle_rapid_api(state['url_to_summarize'])
+        youtube_subs=yt_api.get_subtitle_rapid_api(state['url_to_summarize'])
     
-    docs = document_splitter(youtube_doc)[:10]
+    #docs = document_splitter(youtube_doc)[:10]
 
-    print('subtitle doc count : ',len(docs))
-    chain = load_summarize_chain(llm=general_llm, chain_type='stuff')
+    transcript = yt_api.limit_word(youtube_subs , 2000)
 
-    response = chain.invoke(docs)
+    SUMMARY_PROMPT = """Summarize the video in ENGLISH with the transcript is provide in code block. \
+What are the 5 key takeaways?\
+Transcript : ```{transcript}```
 
-    return {'messages' :[response['output_text']] }
+"""
+
+    prompt = ChatPromptTemplate.from_template(SUMMARY_PROMPT)
+    formatted_prompt = prompt.format_messages(transcript=transcript)
+
+    response = general_llm(formatted_prompt)
+
+    return {'messages' :[response.content] }
 
 ## Graph Builder
 

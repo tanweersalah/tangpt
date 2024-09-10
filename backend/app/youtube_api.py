@@ -5,6 +5,8 @@ import validators
 from langchain_community.document_loaders import YoutubeLoader,WebBaseLoader
 from youtube_transcript_api._errors import NoTranscriptFound
 from langchain.docstore.document import Document
+from youtube_transcript_api import YouTubeTranscriptApi
+import re
 
 
 
@@ -44,6 +46,60 @@ class YouTubeAPI:
             return None
 
 
+    def limit_word(self,transcript, word_limit=500 ):
+        # Extract text with word limit
+        words = []
+        total_words = 0
+        for entry in transcript:
+            entry_words = entry.split()
+            if word_limit is not None:
+                if total_words + len(entry_words) > word_limit:
+                    words.extend(entry_words[:word_limit - total_words])
+                    break
+                total_words += len(entry_words)
+            words.extend(entry_words)
+            if word_limit is not None and total_words >= word_limit:
+                break
+
+        full_text = " ".join(words)
+        word_count = len(words)
+
+        return full_text
+    
+    def get_youtube_transcript_text(self,video_url):
+        try:
+            video_id = self.extract_video_id(video_url)
+
+            
+            # First, try to get the manually created English transcript
+            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
+
+            transcript = [entry['text'] for entry  in transcript]
+
+            return transcript
+        except Exception as e:
+            print(e)
+            return  ["It seems like there is no transcript available for this video"]
+        
+        
+        
+    
+    def extract_video_id(self,url):
+        # Regular expression pattern to match various forms of YouTube URLs
+        patterns = [
+            r'(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&]+)',
+            r'(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^?]+)',
+            r'(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^?]+)',
+            r'(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([^?]+)',
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        
+        return None
+
     def get_english_subtitle_from_url(self,video_url):
 
         # Initialize YoutubeLoader with the video URL
@@ -79,17 +135,28 @@ class YouTubeAPI:
             "x-rapidapi-key": self.rapid_api_key,
             "x-rapidapi-host": "youtube-transcripts.p.rapidapi.com"
         }
-        response = requests.get(self.rapid_url, params=params ,headers=headers)
-        print('rapid : ',response)
-        if response.status_code == 200:
-            search_results = response.json()
 
-            print('rapid : ',search_results)
-            subtitle_list = [i['text'] for i in search_results['content']]
-            complete_subtitle = " ".join(subtitle_list)
-            doc =  Document(page_content=complete_subtitle, metadata={"source": "youtube"})
+        try:
+            response = requests.get(self.rapid_url, params=params ,headers=headers)
+            
+            if response.status_code == 200:
+                search_results = response.json()
 
-            return [doc]
+                
+                subtitle_list = [i['text'] for i in search_results['content']]
+
+                return subtitle_list
+            else : 
+                return  ["It seems like there is no transcript available for this video"]
+
+        except Exception as e:
+            return  [f"It seems like there is some error while transcript available for this video Error : {e.message}"]
+
+
+            # complete_subtitle = " ".join(subtitle_list)
+            # doc =  Document(page_content=complete_subtitle, metadata={"source": "youtube"})
+
+            # return [doc]
 
 
 
