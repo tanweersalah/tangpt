@@ -166,7 +166,7 @@ def create_post(udemy_link):
     Important : your response should be only the article , no additional sentences in start and beginning.
     1. Format the headings as HTML (H1, H2, H3, etc.) and add focus keyword in it..
     2a. Free Udemy Coupon,  {focus_keyword} atleast 5 times in content 
-    2b. Make the article 2000 words long.
+    2b. Make the article 1000 words long.
     2c. Keep paragraphs short and simple, typically 2-4 sentences each
     3. Insert relevant external links to reputable sources throughout the content. Use at least 5 different sources.
     4. Include the target keyword naturally in the first and last sentences of the article.
