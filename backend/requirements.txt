@@ -13,3 +13,5 @@ faiss-cpu
 pytube
 youtube_transcript_api
 validators
+requests
+bs4

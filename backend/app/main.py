@@ -22,6 +22,7 @@ from langchain.chains.summarize import load_summarize_chain
 from langgraph.graph import StateGraph, END, START
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.prompts import ChatPromptTemplate
+from udemy import search_udemy_coupons
 
 
 
@@ -53,7 +54,7 @@ class AgentState(TypedDict):
 
 
 class DecisionRouter(BaseModel):
-    decision : Literal['RAG', 'General', 'Media', 'SummarizeVideo'] = Field(..., description="Chose correct option based on user input, 1. If User ask any information related to Tanweer use RAG  ,2. If user needs a video or youtube links use Media,3. If user asking for video explaination or video summarization use SummarizeVideo, use general for all task and all other explaination except Video")
+    decision : Literal['RAG', 'General', 'Media', 'SummarizeVideo'] = Field(..., description="Chose correct option based on user input, 1. If User ask any information related to Tanweer use RAG  ,2. If user needs a video or youtube links use Media, 3. If user ask for udemy coupon use Media , 4. If user asking for video explaination or video summarization use SummarizeVideo, use general for all task and all other explaination except Video")
     link: str = Field(..., description="link for the video if user asking for summarizing any video , else keep it blank ")
 class SessionStore(BaseModel):
     chat_history :list
@@ -140,7 +141,13 @@ def get_media(search_text):
     response = yt_api.search( search_text, max_results=1, video_type="video")
     return response
 
-tools = [get_media]
+@tool
+def get_udemy_coupon(count=1):
+    """Return list of udemy coupon, provide the count of how many coupon you want, default 1"""
+    return search_udemy_coupons(count)
+
+
+tools = [get_media ,get_udemy_coupon]
 
 
 
