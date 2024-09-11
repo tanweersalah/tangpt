@@ -231,7 +231,7 @@ def input_router(state: AgentState):
     if state.get('auth_required', False) :
         return {'next_node' : 'END', 'url_to_summarize': ""}
     
-    decision = router_llm_structured.invoke(state['messages'][-2:])
+    decision = router_llm_structured.invoke(state['messages'][-4:])
     
 
     return {'next_node' : decision.decision, 'url_to_summarize': decision.link}
