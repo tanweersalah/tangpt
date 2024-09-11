@@ -24,7 +24,7 @@ from langchain.chains.summarize import load_summarize_chain
 from langgraph.graph import StateGraph, END, START
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.prompts import ChatPromptTemplate
-from udemy import search_udemy_coupons, get_udemy_content
+from udemy import search_udemy_coupons, get_udemy_from_fn_app
 from wp import create_udemy_page, upload_new_image
 
 
@@ -157,7 +157,8 @@ def create_post(udemy_link):
 
     process = "scrapping content from udemy"
     try:
-        content = get_udemy_content(udemy_link)
+        #content = get_udemy_content(udemy_link)
+        content = get_udemy_from_fn_app(udemy_link)
 
         process = "downloading image from udemy"
         image_id = upload_new_image(content['image url'] , content['title'])

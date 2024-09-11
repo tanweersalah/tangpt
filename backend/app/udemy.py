@@ -2,6 +2,10 @@ import traceback
 import requests
 from bs4 import BeautifulSoup as BS
 from urllib.parse import urlparse, parse_qs
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def get_url_param(url, param_name):
     # Parse the URL
@@ -78,6 +82,25 @@ def search_udemy_coupons(coupon_count= 1):
     clist = links(ll + str(p), coupon_count=coupon_count)
     return clist
 
+
+
+def get_udemy_from_fn_app(url):
+    base_url = "https://tan-udemy.azurewebsites.net/api/UdemyScrapper?code=" + os.getenv('AZURE_FN_KEY')
+    params = {
+            
+            "link": url,
+            
+        }
+    response = requests.get(base_url, params=params)
+    if response.status_code == 200:   
+        return response.json()
+    else:
+        print(f"Error: {response.status_code} - {response.text}")
+        return None
+
+
+
+get_udemy_from_fn_app("https://www.udemy.com/course/complete-guide-become-a-six-figure-online-course-instructor/?couponCode=SUBHANALLAH003")
 
 def get_udemy_content(url):
 
