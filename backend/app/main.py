@@ -1,4 +1,6 @@
+import traceback
 from typing import Annotated, Literal
+import requests
 from typing_extensions import TypedDict
 from fastapi import FastAPI
 import os
@@ -22,7 +24,9 @@ from langchain.chains.summarize import load_summarize_chain
 from langgraph.graph import StateGraph, END, START
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.prompts import ChatPromptTemplate
-from udemy import search_udemy_coupons
+from udemy import search_udemy_coupons, get_udemy_content
+from wp import create_udemy_page, upload_new_image
+
 
 
 
@@ -54,7 +58,7 @@ class AgentState(TypedDict):
 
 
 class DecisionRouter(BaseModel):
-    decision : Literal['RAG', 'General', 'Media', 'SummarizeVideo'] = Field(..., description="Chose correct option based on user input, 1. If User ask any information related to Tanweer use RAG  ,2. If user needs a video or youtube links use Media, 3. If user ask for udemy coupon use Media , 4. If user asking for video explaination or video summarization use SummarizeVideo, use general for all task and all other explaination except Video")
+    decision : Literal['RAG', 'General', 'Media', 'SummarizeVideo'] = Field(..., description="Chose correct option based on user input, 1. If User ask any information related to Tanweer use RAG  ,2. If user needs a video or youtube links use Media, 3. If user ask for udemy coupon use Media , 4. If user ask for create a post on geeksgod use Media , 5. If user asking for video explaination or video summarization use SummarizeVideo, use general for all task and all other explaination except Video")
     link: str = Field(..., description="link for the video if user asking for summarizing any video , else keep it blank ")
 class SessionStore(BaseModel):
     chat_history :list
@@ -146,8 +150,70 @@ def get_udemy_coupon(count=1):
     """Return list of udemy coupon, provide the count of how many coupon you want, default 1"""
     return search_udemy_coupons(count)
 
+@tool
+def create_post(udemy_link):
+    """Use this to Create Post on GeeksGod website, provide the udemy link input."""
+    
 
-tools = [get_media ,get_udemy_coupon]
+    process = "scrapping content from udemy"
+    try:
+        content = get_udemy_content(udemy_link)
+
+        process = "downloading image from udemy"
+        image_id = upload_new_image(content['image url'] , content['title'])
+
+        ai_content_prompt = """ You're an AI SEO expert writing articles to rank my blog. Create a comprehensive article on above content , the focus keyword is {focus_keyword}. Follow these instructions:
+    Important : your response should be only the article , no additional sentences in start and beginning.
+    1. Format the headings as HTML (H1, H2, H3, etc.) and add focus keyword in it..
+    2a. Free Udemy Coupon,  {focus_keyword} atleast 5 times in content 
+    2b. Make the article 2000 words long.
+    2c. Keep paragraphs short and simple, typically 2-4 sentences each
+    3. Insert relevant external links to reputable sources throughout the content. Use at least 5 different sources.
+    4. Include the target keyword naturally in the first and last sentences of the article.
+    5. Optimize the content for the given keyword throughout the article.
+    6. Humanize the output:
+    - Use a conversational and natural tone
+    - Incorporate analogies and examples where appropriate
+    - Add personal anecdotes or experiences (hypothetical if necessary)
+    - Use rhetorical questions to engage the reader
+    - Vary sentence structure and length for better readability
+
+    7. No fluffy AI jargon or generic buzzwords. Keep it neutral and conversational.
+    8. Create a compelling introduction that hooks the reader.
+    9. Include bullet points or numbered lists where appropriate for easy readability.
+    10. Add relevant FAQs at the end of the article.
+    11. Conclude with a strong summary that reinforces the main points.
+
+    content :
+        {content}
+
+    """
+
+        prompt = ChatPromptTemplate.from_template(ai_content_prompt)
+
+        formatted_prompt = prompt.format_messages(content = content['description'], focus_keyword = content['title'])
+
+        process = "generated AI optimized content"
+        print(process)
+        ai_content = general_llm(formatted_prompt)
+        ai_content = ai_content.content
+
+        process = "Searching youtube video"
+        print(process)
+        yt_video = yt_api.search( content['title'], max_results=1, video_type="video")
+
+        process = "Create post on website"
+        print(process)
+        response = create_udemy_page(content=content, imgid=image_id, ai_content=ai_content,youtube_video=yt_video )
+    
+    except Exception as e:
+        traceback.print_exc()
+        print(e.message)
+        response = {'Status' : f'Failed to create the post while {process}'}
+
+    return response
+
+tools = [get_media ,get_udemy_coupon, create_post]
 
 
 

@@ -15,3 +15,5 @@ youtube_transcript_api
 validators
 requests
 bs4
+python-wordpress-xmlrpc
+Pillow
